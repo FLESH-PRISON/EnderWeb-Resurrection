@@ -29,5 +29,6 @@ Also, I used to have a few pages. I wanna do that again. It was fun.
 
 ## What's with the tagline?
 
-It's an injoke. One user, Zobody, made every all-same-digit page (111111 to
-999999) a picture of a dickbutt, with a signature.
+It's an injoke. One user, Zobody, made every all-same-digit page he could
+get his hands on (222222 to 999999) a picture of a dickbutt, with a
+signature.

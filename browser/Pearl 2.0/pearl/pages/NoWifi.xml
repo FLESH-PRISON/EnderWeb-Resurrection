@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+        <page>
+        <body bgcolor="black">
+        <br></br>
+        <drawing align="center"><image>
+        ...444444...+
+        .444.ee.444.+
+        44...ee...44+
+        4..44ee44..4+
+        ..44.ee.44..+
+        ..4..ee..4..+
+        ....4ee4....+
+        ...44..44...+
+        .....ee.....+
+        .....ee.....
+        </image></drawing>
+        <br></br>
+        <div color="white" align="center">No Internet Connection</div>
+        <div color="gray" align="center">Please check your connection and try again.</div>
+	      <br></br>
+	      <br></br>
+	      <br></br>
+        <div color="white" align="center">Scroll Down for Troubleshooting</div>
+        <br></br>
+        <br></br>
+        <div color="black" align="center"> Are you online? (Sorry, gotta ask this first!)</div>
+        <br></br>
+        <div color="black" align="center"> Do you have a restrictive DNS, PROXY, or VPN?</div>
+        <div align="center" color="lightblue"> Try using a public DNS like 8.8.8.8 or 1.1.1.1 to rule out DNS issues.</div>
+        <br></br>
+        <div color="black" align="center"> Have you download / modified your browser?</div>
+        <div color="lightblue" align="center"> Pearl 1.1 require the url at line 467 to be changed!</div>
+        <div color="lightblue" align="center"> Purpur should already be configured!</div>
+        <br></br>
+        <div color="black" align="center"> Has the CC config been changed to unblock local IPs?</div>
+        <div color="lightblue" align="center"> CC:Tweaked ignores the config file. Do it in the mod menu!</div>
+        <br></br>
+        <div align="center" color="black"> Is the Chorus server running?</div>
+        <div align="center" color="lightblue"> Ensure the server is accessible at `http://ip-address:5000` or example.com/test.</div>
+        <br></br>
+        <div align="center" color="black"> Have you tried a different device?</div>
+        <br></br>
+        <div color="black" align="center"> Is it possible your CraftOS ID was blocked?</div>
+        <div color="lightblue" align="center"> Chorus allows blocking of IDs for pages and the API server.</div>
+        <br></br>
+        <div align="center" color="black"> Is your system clock correct?</div>
+        <div align="center" color="lightblue"> An incorrect clock may cause certificate or connection errors.</div>
+        <br></br>
+        <div align="center" color="gray">Find out more at:</div>
+        <div align="center" color="black">EnderWeb.net/help</div>
+        <div align="center" color="black">github.com/FLESH-PRISON/EnderWeb-Resurrection/</div>
+        <br></br>
+        </body>
+        </page>

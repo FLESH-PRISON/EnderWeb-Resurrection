@@ -1,4 +1,4 @@
-
+ 
 --Pearl EnderWeb Browser by TurtleScripts
 --Written by da404lewzer
 --This is delivered to you without warranty under the Creative Commons Attribution-ShareAlike 3.0 Unported License (http://creativecommons.org/licenses/by-sa/3.0/).
@@ -462,16 +462,29 @@ end
 
 local function loadPage(id)
   local headers = {
-    [ "User-Agent" ] = userAgent
+      [ "User-Agent" ] = userAgent
   }
-  local pageResult = http.get( "http://127.0.0.1:5000" .. id, headers )
-  localPageDOM = parseTree(pageResult.readAll())
-  pageResult.close() --Just in case
+  local pageResult = http.get("http://api.enderweb.com/getPage/" .. id, headers)
   
+  if pageResult then
+      local pageData = pageResult.readAll()
+      pageResult.close()
+      
+      if pageData then
+          localPageDOM = parseTree(pageData)
+      else
+          print("Error: No data received from the server.")
+          localPageDOM = parseTree([[<?xml version="1.0"?><page><body><div color="gray" align="center">Error loading page</div></body></page>]])
+      end
+  else
+      print("Error: Failed to connect to the server.")
+      localPageDOM = parseTree([[<?xml version="1.0"?><page><body><div color="gray" align="center">Error loading page</div></body></page>]])
+  end
+
   pageScroll = 0
   renderDOM()
-  
 end
+
 
 --saveSettings()
 

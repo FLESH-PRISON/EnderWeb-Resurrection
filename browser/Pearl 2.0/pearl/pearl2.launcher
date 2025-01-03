@@ -1,5 +1,4 @@
-
---Pearl EnderWeb Browser by TurtleScripts
+ --Pearl EnderWeb Browser by TurtleScripts
 --Written by da404lewzer
 --This is delivered to you without warranty under the Creative Commons Attribution-ShareAlike 3.0 Unported License (http://creativecommons.org/licenses/by-sa/3.0/).
 
@@ -7,13 +6,15 @@
 
 --[[LOCAL VARS]]
 
-local versionStr="1.1-beta"
+local versionStr="2.0a"
 local userAgent="EnderWeb/1.0 (Minecraft; ComputerCraft; Forge) Pearl/" .. versionStr
 
 local running = true
 local w,h = term.getSize()
 
 --[[LOCAL DEPENDENCIES]]
+
+local logger = require("logger")
 
 local function setColors(monitor, bg, fg, bg2, fg2)
    if monitor then
@@ -102,12 +103,13 @@ end
 --[[START PROGRAM]]
 
 local args = {...}
-local currentPage = {}
+local currentPage = "home"
 local currentPageID = "000000"
 local localPageDOM = {}
 local pageScroll = 0
 local totalLines = 0
-
+local logLocation = shell.resolve("logs")
+logger.setup("Pearl" , logLocation)
 
 local function writeTextRAW(monitor, x, y, text)
   monitor.setCursorPos(x, y)
@@ -250,6 +252,7 @@ local function ParseArgs(node, s)
 end
 
 local function parseTree(xmlText)
+  logger.startLog("parseTree", currentPage, currentPageID)
   local stack = {}
   local top = newNode()   
   table.insert(stack, top)
@@ -290,6 +293,7 @@ local function parseTree(xmlText)
   if #stack > 1 then
     error("XmlParser: unclosed " .. stack[#stack]:name())
   end
+  logger.endLog()
   return top
 end
 
@@ -351,7 +355,7 @@ local function getColor(color, default)
 end
 
 local function renderDOM()
-
+  logger.startLog("renderDOM", currentPage, currentPageID)
   local body = localPageDOM.page.body
   local children = body:children();
   
@@ -431,6 +435,7 @@ local function renderDOM()
     
   end
 
+  logger.endLog()
   updatePage()
 
 end
@@ -461,16 +466,45 @@ local function scrollPage(amt)
 end
 
 local function loadPage(id)
-  local headers = {
-    [ "User-Agent" ] = userAgent
-  }
-  local pageResult = http.get( "http://127.0.0.1:5000" .. id, headers )
-  localPageDOM = parseTree(pageResult.readAll())
-  pageResult.close() --Just in case
-  
+  logger.startLog("loadPage", currentPage, currentPageID)
+  if currentPage == "internet" then
+      -- Internet logic
+      local headers = { ["User-Agent"] = userAgent }
+      local pageResult = http.get("https://chorus.enderweb.net/getPage/" .. id, headers)
+      
+      if pageResult then
+          local responseCode = pageResult.getResponseCode()
+          local pageData = pageResult.readAll()
+          pageResult.close()
+          if responseCode == 200 then
+              -- Successfully fetched the page
+              logger.endLog("Page Served Correctly")
+              localPageDOM = parseTree(pageData)
+          else
+              logger.endLog(responseCode)
+              currentPage = (tostring(responseCode))
+              loadPage()
+          end
+      else
+        logger.endLog("Dreaded NoWifi Page")
+          currentPage = "NoWifi"
+          loadPage()
+      end
+  else
+      -- Offline logic
+      local filePath = shell.resolve("pages/" .. currentPage .. ".xml")
+      if fs.exists(filePath) then
+          local file = fs.open(filePath, "r")
+          local pageData = file.readAll()
+          file.close()
+          localPageDOM = parseTree(pageData)
+      else
+          localPageDOM = parseTree([[<?xml version="1.0"?><page><body><br></br><div align="center" color="red">Error Loading Page</div><br></br><div align="center" color="black">Couldnt load  the page "]] .. currentPage .. [["</div><div align="center" color="black">Please make issue or pull request on Github.</div><br></br><div align="center" color="black">Link: v.gd/i7Hs8e</div></body></page>]])
+      end
+      logger.endLog("Offline Site Loaded")
+  end
   pageScroll = 0
   renderDOM()
-  
 end
 
 --saveSettings()
@@ -485,8 +519,7 @@ function updateAllTheThings()
     loadPage('001300')
 end
 
-
-loadPage('000000')
+loadPage()
 
 if args[1] == "update" then
   updateAllTheThings()
@@ -576,6 +609,7 @@ while running do
       isKeyingCode = false
       currentPageID = lpad(keyCode, 6, "0")
       keyCode = ""
+      currentPage = "internet"
       loadPage(currentPageID)
     end
     

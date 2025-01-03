@@ -1,0 +1,78 @@
+local logger = {}
+
+local logFilePath = nil -- Log file path will be dynamically set
+local logs = {} -- Store log entries for active functions
+
+-- Helper function to get the current time
+local function getTime()
+    return os.clock()
+end
+
+-- Setup logger with program name and file location
+function logger.setup(programName, fileLocation)
+    -- Ensure fileLocation ends with a "/"
+    if string.sub(fileLocation, -1) ~= "/" then
+        fileLocation = fileLocation .. "/"
+    end
+
+    -- Generate the log file path dynamically
+    logFilePath = fileLocation .. programName .. "_" .. os.date("%m_%d_%H%M") .. ".log"
+end
+
+-- Start logging a function
+function logger.startLog(functionName, currentPage, currentPageID)
+    if not logFilePath then
+        error("Logger is not set up. Call logger.setup() before using it.")
+    end
+
+    logs[functionName] = {
+        functionName = functionName,
+        currentPage = currentPage or "N/A",
+        currentPageID = currentPageID or "N/A",
+        startTime = getTime()
+    }
+end
+
+-- End logging for the last started function, optionally with a note
+function logger.endLog(note)
+    -- Find the most recent function in logs
+    local functionName, entry = next(logs)
+    if not entry then
+        error("No active log entry found to end.")
+    end
+
+    -- Record the end time and calculate elapsed time
+    entry.endTime = getTime()
+    entry.elapsedTime = entry.endTime - entry.startTime
+
+    -- Format log message
+    local logMessage = string.format(
+        "[%s] Function: %s | Page: %s | PageID: %s | Elapsed: %.4f seconds",
+        os.date("%Y-%m-%d %H:%M:%S"), -- Timestamp
+        entry.functionName,
+        entry.currentPage,
+        entry.currentPageID,
+        entry.elapsedTime
+    )
+
+    -- Add the optional note
+    if note then
+        logMessage = logMessage .. " | Note: " .. note
+    end
+
+    logMessage = logMessage .. "\n" -- Add a newline at the end
+
+    -- Write to log file
+    local file = fs.open(logFilePath, "a") -- Append mode
+    if file then
+        file.write(logMessage)
+        file.close()
+    else
+        print("Failed to write to log file: " .. logFilePath)
+    end
+
+    -- Remove the entry from active logs
+    logs[functionName] = nil
+end
+
+return logger

@@ -1,0 +1,53 @@
+-- Simplified input handler for Pearl Browser
+local inputHandler = {}
+
+-- Main key press handler - now just handles basic key presses
+function inputHandler.handleKeyPress(key)
+    -- Number input handling
+    if key == keys.one or key == keys.numPad1 then
+        return { type = "input", keyPressed = "1" }
+    elseif key == keys.two or key == keys.numPad2 then
+        return { type = "input", keyPressed = "2" }
+    elseif key == keys.three or key == keys.numPad3 then
+        return { type = "input", keyPressed = "3" }
+    elseif key == keys.four or key == keys.numPad4 then
+        return { type = "input", keyPressed = "4" }
+    elseif key == keys.five or key == keys.numPad5 then
+        return { type = "input", keyPressed = "5" }
+    elseif key == keys.six or key == keys.numPad6 then
+        return { type = "input", keyPressed = "6" }
+    elseif key == keys.seven or key == keys.numPad7 then
+        return { type = "input", keyPressed = "7" }
+    elseif key == keys.eight or key == keys.numPad8 then
+        return { type = "input", keyPressed = "8" }
+    elseif key == keys.nine or key == keys.numPad9 then
+        return { type = "input", keyPressed = "9" }
+    elseif key == keys.zero or key == keys.numPad0 then
+        return { type = "input", keyPressed = "0" }
+
+    -- Navigation handling
+    elseif key == keys.backspace then
+        return { type = "backspace" }
+    elseif key == keys.enter then
+        return { type = "submit" }
+    elseif key == keys.w or key == keys.up then
+        return { type = "scroll", scroll = 1 }
+    elseif key == keys.s or key == keys.down then
+        return { type = "scroll", scroll = -1 }
+    elseif key == keys.home then
+        return { type = "jump", jumpTo = 0 }
+    elseif key == keys['end'] then
+        return { type = "jump", jumpTo = -1 }
+    elseif key == keys.r then
+        return { type = "refresh" }
+    elseif key == keys.q then
+        return { type = "quit" }
+    elseif key == keys.b then
+        return { type = "bookmark" }
+    end
+
+    -- No matching action
+    return { type = "none" }
+end
+
+return inputHandler

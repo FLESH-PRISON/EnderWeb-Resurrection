@@ -15,6 +15,8 @@ local w,h = term.getSize()
 --[[LOCAL DEPENDENCIES]]
 
 local logger = require("logger")
+local inputHandler = require("input")
+local settings = require("settings")
 
 local function setColors(monitor, bg, fg, bg2, fg2)
    if monitor then
@@ -102,14 +104,19 @@ end
 
 --[[START PROGRAM]]
 
+local currentPageID
+local currentPage
+local startPageId, startPageName = settings.getStartPage()
+currentPageID = startPageId
+currentPage = startPageName
 local args = {...}
-local currentPage = "home"
-local currentPageID = "000000"
 local localPageDOM = {}
 local pageScroll = 0
 local totalLines = 0
-local logLocation = shell.resolve("logs")
-logger.setup("Pearl" , logLocation)
+local currentLocation = shell.resolve("logs")
+
+logger.setup("Pearl" , currentLocation)
+settings.setup(shell.resolve("usersettings"))
 
 local function writeTextRAW(monitor, x, y, text)
   monitor.setCursorPos(x, y)
@@ -441,15 +448,14 @@ local function renderDOM()
 end
 
 local function setPageScroll(scroll)
-
   local pageScrollBefore = pageScroll
   pageScroll = scroll
   
   if pageScrollBefore ~= pageScroll then
     renderDOM()
   end
-  
 end
+
 local function getPageScroll(tmpScroll)
   local scrollDiff = -(totalLines - h + 1)
   if tmpScroll > 0 then tmpScroll = 0 end
@@ -492,6 +498,7 @@ local function loadPage(id)
       end
   else
       -- Offline logic
+      updateTitleKeying(currentPageID)
       local filePath = shell.resolve("pages/" .. currentPage .. ".xml")
       if fs.exists(filePath) then
           local file = fs.open(filePath, "r")
@@ -529,101 +536,72 @@ end
 
 loadPage(currentPageID)
 
+-- Replace the existing main loop with this simplified version
 local isKeyingCode = false
 local keyCode = ""
-local doKeyingSubmit = false
 
 while running do
-
-  local doScrollPage = 0 -- positive or negative when scrollling, 0 == off
-  local doJumpPage = 1 -- negative when jumping, 1 == off
-
-  local event, p1,p2,p3 = os.pullEvent()
-  if event == "key" then 
-		if p1 == keys.one or p1 == keys.numPad1 then
-      keyCode = keyCode .. "1"
-      isKeyingCode = true
-		elseif p1 == keys.two or p1 == keys.numPad2 then
-      keyCode = keyCode .. "2"
-      isKeyingCode = true
-		elseif p1 == keys.three or p1 == keys.numPad3 then
-      keyCode = keyCode .. "3"
-      isKeyingCode = true
-		elseif p1 == keys.four or p1 == keys.numPad4 then
-      keyCode = keyCode .. "4"
-      isKeyingCode = true
-		elseif p1 == keys.five or p1 == keys.numPad5 then
-      keyCode = keyCode .. "5"
-      isKeyingCode = true
-		elseif p1 == keys.six or p1 == keys.numPad6 then
-      keyCode = keyCode .. "6"
-      isKeyingCode = true
-		elseif p1 == keys.seven or p1 == keys.numPad7 then
-      keyCode = keyCode .. "7"
-      isKeyingCode = true
-		elseif p1 == keys.eight or p1 == keys.numPad8 then
-      keyCode = keyCode .. "8"
-      isKeyingCode = true
-		elseif p1 == keys.nine or p1 == keys.numPad9 then
-      keyCode = keyCode .. "9"
-      isKeyingCode = true
-		elseif p1 == keys.zero or p1 == keys.numPad0 then
-      keyCode = keyCode .. "0"
-      isKeyingCode = true
-		elseif isKeyingCode and p1 == keys.backspace then
-      keyCode = string.sub(keyCode, 1, #keyCode-1)
-      
-		elseif p1 == keys.enter then
-      doKeyingSubmit = true
-      
-		elseif p1 == keys.w or p1 == keys.up then
-      doScrollPage = 1
-      
-		elseif p1 == keys.s or p1 == keys.down then
-      doScrollPage = -1
-      
-		elseif p1 == keys.home then
-      doJumpPage = 0
-      
-		elseif p1 == keys['end'] then
-      doJumpPage = -totalLines
-      
-		elseif p1 == keys.r then
-      updateTitleKeying(currentPageID)
-      loadPage(currentPageID)
-      
-		elseif p1 == keys.q then
-      running = false
-    end
-  elseif event == "timer" and p1 == timer then
-  end
-  
-  if isKeyingCode then
-  
-    updateTitleKeying(keyCode)
-    if #keyCode == 6 then
-      doKeyingSubmit = true
-    end
-  
-    if doKeyingSubmit then
-      isKeyingCode = false
-      currentPageID = lpad(keyCode, 6, "0")
-      keyCode = ""
-      currentPage = "internet"
-      loadPage(currentPageID)
-    end
+    local event, param1 = os.pullEvent()
     
-  end 
-  doKeyingSubmit = false
-  
-  if doScrollPage ~= 0 then
-    scrollPage(doScrollPage)
-  end
-  if doJumpPage < 1 then
-    setPageScroll(getPageScroll(doJumpPage))
-  end
-  
+    if event == "key" then
+        local action = inputHandler.handleKeyPress(param1)
+        
+        -- Handle number input and page navigation
+        if action.type == "input" then
+            keyCode = keyCode .. action.keyPressed
+            isKeyingCode = true
+            updateTitleKeying(keyCode)
+            
+            -- Auto-submit when we have 6 digits
+            if #keyCode == 6 then
+                currentPageID = keyCode
+                keyCode = ""
+                isKeyingCode = false
+                currentPage = "internet"
+                loadPage(currentPageID)
+            end
+            
+        -- Handle backspace during input
+        elseif action.type == "backspace" and isKeyingCode then
+            keyCode = string.sub(keyCode, 1, #keyCode-1)
+            updateTitleKeying(keyCode)
+            
+        -- Handle enter/submit
+        elseif action.type == "submit" and isKeyingCode then
+            currentPageID = lpad(keyCode, 6, "0")
+            keyCode = ""
+            isKeyingCode = false
+            currentPage = "internet"
+            loadPage(currentPageID)
+            
+        -- Handle scrolling
+        elseif action.type == "scroll" then
+            scrollPage(action.scroll)
+            
+        -- Handle jump to position
+        elseif action.type == "jump" then
+            if action.jumpTo == -1 then
+                setPageScroll(getPageScroll(-totalLines))
+            else
+                setPageScroll(getPageScroll(action.jumpTo))
+            end
+            
+        -- Handle refresh
+        elseif action.type == "refresh" then
+            loadPage(currentPageID)
+            
+        -- Handle bookmark
+        elseif action.type == "bookmark" then
+            settings.addBookmark(currentPageID, currentPage)
+            
+        -- Handle quit
+        elseif action.type == "quit" then
+            running = false
+            break
+        end
+    end
 end
+
 
 --saveSettings()
 setColors(term, colors.black, colors.white, colors.black, colors.white)

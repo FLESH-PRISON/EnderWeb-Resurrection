@@ -1,0 +1,207 @@
+-- Settings manager for Pearl Browser
+local settings = {}
+
+-- Internal state
+local configData = {
+    startPage = {
+        id = "000000",
+        name = "home"
+    },
+    theme = {
+        background = colors.black,
+        text = colors.white
+    },
+    bookmarks = {},
+    -- Add other default settings here
+    onlineMode = true,
+    autoUpdate = false,
+    logLevel = "info"
+}
+
+local paths = {
+    settings = nil,
+    bookmarks = nil
+}
+
+-- Initialize settings manager with file paths
+function settings.setup(baseDir)
+    if not baseDir then
+        error("Base directory is required for settings setup")
+    end
+    
+    -- Ensure baseDir ends with slash
+    if string.sub(baseDir, -1) ~= "/" then
+        baseDir = baseDir .. "/"
+    end
+    
+    paths.settings = baseDir .. "pearl_settings.cfg"
+    paths.bookmarks = baseDir .. "pearl_bookmarks.cfg"
+    
+    -- Create directory if it doesn't exist
+    if not fs.exists(baseDir) then
+        fs.makeDir(baseDir)
+    end
+    
+    -- Load existing settings
+    settings.load()
+end
+
+-- Load settings from files
+function settings.load()
+    if not paths.settings then
+        error("Settings not initialized. Call settings.setup() first")
+    end
+    
+    -- Load main settings
+    if fs.exists(paths.settings) then
+        local file = fs.open(paths.settings, "r")
+        if file then
+            local data = textutils.unserialize(file.readAll())
+            file.close()
+            
+            -- Update configData with loaded settings, maintaining defaults
+            for k, v in pairs(data) do
+                configData[k] = v
+            end
+        end
+    end
+    
+    -- Load bookmarks separately
+    if fs.exists(paths.bookmarks) then
+        local file = fs.open(paths.bookmarks, "r")
+        if file then
+            configData.bookmarks = textutils.unserialize(file.readAll()) or {}
+            file.close()
+        end
+    end
+end
+
+-- Save current settings to files
+function settings.save()
+    if not paths.settings then
+        error("Settings not initialized. Call settings.setup() first")
+    end
+    
+    -- Save main settings
+    local mainSettings = {}
+    for k, v in pairs(configData) do
+        if k ~= "bookmarks" then  -- Skip bookmarks as they're saved separately
+            mainSettings[k] = v
+        end
+    end
+    
+    local file = fs.open(paths.settings, "w")
+    if file then
+        file.write(textutils.serialize(mainSettings))
+        file.close()
+    end
+    
+    -- Save bookmarks separately
+    local bookmarkFile = fs.open(paths.bookmarks, "w")
+    if bookmarkFile then
+        bookmarkFile.write(textutils.serialize(configData.bookmarks))
+        bookmarkFile.close()
+    end
+end
+
+-- Start page management
+function settings.setStartPage(pageId, pageName)
+    configData.startPage = {
+        id = pageId,
+        name = pageName or "home"
+    }
+    settings.save()
+end
+
+function settings.getStartPage()
+    return configData.startPage.id, configData.startPage.name
+end
+
+-- Bookmark management
+function settings.addBookmark(pageId, name)
+    -- Check for duplicate bookmarks
+    for i, bookmark in ipairs(configData.bookmarks) do
+        if bookmark.id == pageId then
+            -- Update existing bookmark name if different
+            if bookmark.name ~= name then
+                bookmark.name = name
+                settings.save()
+            end
+            return
+        end
+    end
+    
+    -- Add new bookmark
+    table.insert(configData.bookmarks, {
+        id = pageId,
+        name = name or pageId,
+        timestamp = os.epoch("local")
+    })
+    settings.save()
+end
+
+function settings.removeBookmark(pageId)
+    for i, bookmark in ipairs(configData.bookmarks) do
+        if bookmark.id == pageId then
+            table.remove(configData.bookmarks, i)
+            settings.save()
+            return true
+        end
+    end
+    return false
+end
+
+function settings.getBookmarks()
+    return configData.bookmarks
+end
+
+-- Theme management
+function settings.setTheme(background, text)
+    configData.theme.background = background
+    configData.theme.text = text
+    settings.save()
+end
+
+function settings.getTheme()
+    return configData.theme.background, configData.theme.text
+end
+
+-- General settings management
+function settings.get(key)
+    return configData[key]
+end
+
+function settings.set(key, value)
+    configData[key] = value
+    settings.save()
+end
+
+-- Get all settings (for debugging or export)
+function settings.getAll()
+    local allSettings = {}
+    for k, v in pairs(configData) do
+        allSettings[k] = v
+    end
+    return allSettings
+end
+
+-- Reset settings to defaults
+function settings.reset()
+    configData = {
+        startPage = {
+            id = "000000",
+            name = "home"
+        },
+        theme = {
+            background = colors.black,
+            text = colors.white
+        },
+        bookmarks = {},
+        onlineMode = true,
+        autoUpdate = false,
+        logLevel = "info"
+    }
+    settings.save()
+end
+
+return settings
